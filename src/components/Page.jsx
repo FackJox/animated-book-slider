@@ -1,6 +1,6 @@
 import { useCursor, useTexture } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useAtom } from "jotai";
+import { atom, useAtom } from "jotai";
 import { easing } from "maath";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -17,7 +17,13 @@ import {
   Vector3,
 } from "three";
 import { degToRad } from "three/src/math/MathUtils.js";
-import { pageAtom, pages } from "./UI";
+
+// Constants
+const PAGE_WIDTH = 1.28;
+const PAGE_HEIGHT = 1.71; // 4:3 aspect ratio
+const PAGE_DEPTH = 0.003;
+const PAGE_SEGMENTS = 30;
+const SEGMENT_WIDTH = PAGE_WIDTH / PAGE_SEGMENTS;
 
 const easingFactor = 0.5; // Controls the speed of the easing
 const easingFactorFold = 0.3; // Controls the speed of the easing
@@ -25,12 +31,7 @@ const insideCurveStrength = 0.18; // Controls the strength of the curve
 const outsideCurveStrength = 0.05; // Controls the strength of the curve
 const turningCurveStrength = 0.09; // Controls the strength of the curve
 
-const PAGE_WIDTH = 1.28;
-const PAGE_HEIGHT = 1.71; // 4:3 aspect ratio
-const PAGE_DEPTH = 0.003;
-const PAGE_SEGMENTS = 30;
-const SEGMENT_WIDTH = PAGE_WIDTH / PAGE_SEGMENTS;
-
+// Create geometry
 const pageGeometry = new BoxGeometry(
   PAGE_WIDTH,
   PAGE_HEIGHT,
@@ -47,15 +48,14 @@ const skinIndexes = [];
 const skinWeights = [];
 
 for (let i = 0; i < position.count; i++) {
-  // ALL VERTICES
-  vertex.fromBufferAttribute(position, i); // get the vertex
-  const x = vertex.x; // get the x position of the vertex
+  vertex.fromBufferAttribute(position, i);
+  const x = vertex.x;
 
-  const skinIndex = Math.max(0, Math.floor(x / SEGMENT_WIDTH)); // calculate the skin index
-  let skinWeight = (x % SEGMENT_WIDTH) / SEGMENT_WIDTH; // calculate the skin weight
+  const skinIndex = Math.max(0, Math.floor(x / SEGMENT_WIDTH));
+  let skinWeight = (x % SEGMENT_WIDTH) / SEGMENT_WIDTH;
 
-  skinIndexes.push(skinIndex, skinIndex + 1, 0, 0); // set the skin indexes
-  skinWeights.push(1 - skinWeight, skinWeight, 0, 0); // set the skin weights
+  skinIndexes.push(skinIndex, skinIndex + 1, 0, 0);
+  skinWeights.push(1 - skinWeight, skinWeight, 0, 0);
 }
 
 pageGeometry.setAttribute(
@@ -85,13 +85,7 @@ const pageMaterials = [
   }),
 ];
 
-pages.forEach((page) => {
-  useTexture.preload(`/textures/smack/${page.front}.png`);
-  useTexture.preload(`/textures/smack/${page.back}.png`);
-  useTexture.preload(`/textures/book-cover-roughness.png`);
-});
-
-const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
+export const Page = ({ number, front, back, page, opened, bookClosed, pages, setPage, ...props }) => {
   const [picture, picture2, pictureRoughness] = useTexture([
     `/textures/smack/${front}.png`,
     `/textures/smack/${back}.png`,
@@ -117,7 +111,7 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
         bone.position.x = SEGMENT_WIDTH;
       }
       if (i > 0) {
-        bones[i - 1].add(bone); // attach the new bone to the previous bone
+        bones[i - 1].add(bone);
       }
     }
     const skeleton = new Skeleton(bones);
@@ -160,7 +154,8 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
     return mesh;
   }, []);
 
-  // useHelper(skinnedMeshRef, SkeletonHelper, "red");
+ const [highlighted, setHighlighted] = useState(false);
+  useCursor(highlighted);
 
   useFrame((_, delta) => {
     if (!skinnedMeshRef.current) {
@@ -202,110 +197,58 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
       let foldRotationAngle = degToRad(Math.sign(targetRotation) * 2);
       if (bookClosed) {
         if (i === 0) {
-          rotationAngle = targetRotation;
-          foldRotationAngle = 0;
-        } else {
-          rotationAngle = 0;
-          foldRotationAngle = 0;
+            rotationAngle = targetRotation;
+            foldRotationAngle = 0;
+          } else {
+            rotationAngle = 0;
+            foldRotationAngle = 0;
+          }
         }
+        easing.dampAngle(
+          target.rotation,
+          "y",
+          rotationAngle,
+          easingFactor,
+          delta
+        );
+  
+        const foldIntensity =
+          i > 8
+            ? Math.sin(i * Math.PI * (1 / bones.length) - 0.5) * turningTime
+            : 0;
+        easing.dampAngle(
+          target.rotation,
+          "x",
+          foldRotationAngle * foldIntensity,
+          easingFactorFold,
+          delta
+        );
       }
-      easing.dampAngle(
-        target.rotation,
-        "y",
-        rotationAngle,
-        easingFactor,
-        delta
-      );
-
-      const foldIntensity =
-        i > 8
-          ? Math.sin(i * Math.PI * (1 / bones.length) - 0.5) * turningTime
-          : 0;
-      easing.dampAngle(
-        target.rotation,
-        "x",
-        foldRotationAngle * foldIntensity,
-        easingFactorFold,
-        delta
-      );
-    }
-  });
-
-  const [_, setPage] = useAtom(pageAtom);
-  const [highlighted, setHighlighted] = useState(false);
-  useCursor(highlighted);
-
-  return (
-    <group
-      {...props}
-      ref={group}
-      onPointerEnter={(e) => {
-        e.stopPropagation();
-        setHighlighted(true);
-      }}
-      onPointerLeave={(e) => {
-        e.stopPropagation();
-        setHighlighted(false);
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        setPage(opened ? number : number + 1);
-        setHighlighted(false);
-      }}
-    >
-      <primitive
-        object={manualSkinnedMesh}
-        ref={skinnedMeshRef}
-        position-z={-number * PAGE_DEPTH + page * PAGE_DEPTH}
-      />
-    </group>
-  );
-};
-
-export const Book = ({ ...props }) => {
-  const [page] = useAtom(pageAtom);
-  const [delayedPage, setDelayedPage] = useState(page);
-
-  useEffect(() => {
-    let timeout;
-    const goToPage = () => {
-      setDelayedPage((delayedPage) => {
-        if (page === delayedPage) {
-          return delayedPage;
-        } else {
-          timeout = setTimeout(
-            () => {
-              goToPage();
-            },
-            Math.abs(page - delayedPage) > 2 ? 50 : 150
-          );
-          if (page > delayedPage) {
-            return delayedPage + 1;
-          }
-          if (page < delayedPage) {
-            return delayedPage - 1;
-          }
-        }
-      });
-    };
-    goToPage();
-    return () => {
-      clearTimeout(timeout);
-    };
-  }, [page]);
-
-  return (
-    <group {...props} rotation-y={-Math.PI / 2}>
-      {[...pages].map((pageData, index) => (
-        <Page
-          key={index}
-          page={delayedPage}
-          number={index}
-          opened={delayedPage > index}
-          bookClosed={delayedPage === 0 || delayedPage === pages.length}
-          {...pageData}
+    });
+  
+    return (
+      <group
+        {...props}
+        ref={group}
+        onPointerEnter={(e) => {
+          e.stopPropagation();
+          setHighlighted(true);
+        }}
+        onPointerLeave={(e) => {
+          e.stopPropagation();
+          setHighlighted(false);
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          setPage(opened ? number : number + 1);
+          setHighlighted(false);
+        }}
+      >
+        <primitive
+          object={manualSkinnedMesh}
+          ref={skinnedMeshRef}
+          position-z={-number * PAGE_DEPTH + page * PAGE_DEPTH}
         />
-      ))}
-    </group>
-  );
-};
+      </group>
+    );
+  };
