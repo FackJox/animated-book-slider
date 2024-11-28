@@ -2,22 +2,32 @@ import { atom, useAtom } from "jotai";
 import { useEffect } from "react";
 
 const pictures = [
-  "2contentsreference",
-  "3advertreference",
-  "4editorsref",
-  "5editorsref",
-  "6timelineref",
-  "7timelineref",
-  "8aboutref",
-  "9aboutref",
-  "10contributorsref",
-  "11contributorsref",
+  "02Contents",
+  "03Contents",
+  "04Editorial",
+  "05Editorial",
+  "06Graphics",
+  "07Graphics",
+  "08Scout",
+  "09Scout",
+  "10Bunker",
+  "11Bunker",
+  "12AI",
+  "13AI",
+  "14Sandro",
+  "15SandroWeb",
+  "16Tarot",
+  "17Tarot",
+  "18Tarot",
+  "19Tarot",
+  "20Events",
+  "21Events",
 ];
 
 export const pageAtom = atom(0);
 export const pages = [
   {
-    front: "1frontreference",
+    front: "01Front",
     back: pictures[0],
   },
 ];
@@ -30,7 +40,7 @@ for (let i = 1; i < pictures.length - 1; i += 2) {
 
 pages.push({
   front: pictures[pictures.length - 1],
-  back: "book-back",
+  back: "01Front",
 });
 
 export const UI = () => {

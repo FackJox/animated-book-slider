@@ -86,17 +86,17 @@ const pageMaterials = [
 ];
 
 pages.forEach((page) => {
-  useTexture.preload(`/textures/vague/${page.front}.png`);
-  useTexture.preload(`/textures/vague/${page.back}.jpg`);
-  useTexture.preload(`/textures/book-cover-roughness.jpg`);
+  useTexture.preload(`/textures/smack/${page.front}.png`);
+  useTexture.preload(`/textures/smack/${page.back}.png`);
+  useTexture.preload(`/textures/book-cover-roughness.png`);
 });
 
 const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
   const [picture, picture2, pictureRoughness] = useTexture([
-    `/textures/vague/${front}.png`,
-    `/textures/vague/${back}.png`,
+    `/textures/smack/${front}.png`,
+    `/textures/smack/${back}.png`,
     ...(number === 0 || number === pages.length - 1
-      ? [`/textures/book-cover-roughness.jpg`]
+      ? [`/textures/book-cover-roughness.png`]
       : []),
   ]);
   picture.colorSpace = picture2.colorSpace = SRGBColorSpace;
