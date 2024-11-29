@@ -1,14 +1,14 @@
 import { Float, useTexture } from "@react-three/drei";
-import { atom } from "jotai";
+import { atom, useAtom } from "jotai";
 import { Magazine } from "./Magazine";
 import { useRef } from "react";
-
 
 const smackAtom = atom(0);
 const vagueAtom = atom(0);
 const engineerAtom = atom(0);
+const focusedMagazineAtom = atom(null); // Add this atom to track which magazine is focused
 
-const pictures = [
+const picturesSmack = [
   "02Contents",
   "03Contents",
   "04Editorial",
@@ -22,7 +22,7 @@ const pictures = [
   "12AI",
   "13AI",
   "14Sandro",
-  "15SandroWeb",
+  "15Sandro",
   "16Tarot",
   "17Tarot",
   "18Tarot",
@@ -31,65 +31,110 @@ const pictures = [
   "21Events",
 ];
 
-export const pages = [
-  {
-    front: "01Front",
-    back: pictures[0],
-  },
+const picturesEngineer = [
+  "02Contents",
+  "03Contents",
+  "04Editorial",
+  "05Editorial",
+  "06DigitalTwins",
+  "07DigitalTwins",
+  "08DigitalTwins",
+  "09DigitalTwins",
+  "10WindTurbines",
+  "11WindTurbines",
+  "12HPC",
+  "13HPC",
+  "14Modelling",
+  "15Modelling",
+  "16Transformation",
+  "17Transformation",
+  "18Transformation",
+  "19Transformation",
 ];
 
-for (let i = 1; i < pictures.length - 1; i += 2) {
-  pages.push({
-    front: pictures[i % pictures.length],
-    back: pictures[(i + 1) % pictures.length],
-  });
-}
+const picturesVague = [
+  "02Contents",
+  "03Contents",
+  "04Editorial",
+  "05Editorial",
+  "06Timeline",
+  "07Timeline",
+  "08About",
+  "09About",
+  "10Contributers",
+  "11Contributers",
+];
 
-pages.push({
-  front: pictures[pictures.length - 1],
-  back: "01Front",
-});
+const magazines = {
+  vague: "vague",
+  engineer: "engineer",
+  smack: "smack",
+};
 
-// Preload textures
-pages.forEach((page) => {
-  useTexture.preload(`/textures/smack/${page.front}.png`);
-  useTexture.preload(`/textures/smack/${page.back}.png`);
-  useTexture.preload(`/textures/book-cover-roughness.png`);
-});
+export const Library = ({ ...props }) => {
+  const [focusedMagazine, setFocusedMagazine] = useAtom(focusedMagazineAtom);
 
+  const handleMagazineClick = (magazineName) => {
+    setFocusedMagazine(focusedMagazine === magazineName ? null : magazineName);
+  };
 
+  const getFocusedPosition = () => {
+    return [-0.75, -1, 3]; // Consistent focused position for all magazines
+  };
 
-export const Library = () => {
+  const getUnfocusedPosition = (defaultPosition) => {
+    return [defaultPosition[0] * 1.5, defaultPosition[1] * 1.5, -2];
+  };
+
+  const getPosition = (defaultPosition, magazineName) => {
+    if (focusedMagazine === null) {
+      return defaultPosition;
+    }
+    if (focusedMagazine === magazineName) {
+      return getFocusedPosition();
+    }
+    return getUnfocusedPosition(defaultPosition);
+  };
+
+  // const getRotation = (magazineName) => {
+  //   if (focusedMagazine === magazineName) {
+  //     return [-Math.PI / 8, 0, 0]; // Consistent focused rotation
+  //   }
+  //   return [-Math.PI / 4, 0, 0]; // Default rotation
+  // };
 
   return (
-    <>
-      <Float
-        rotation-x={-Math.PI / 4}
-        floatIntensity={0.5}
-        speed={0.5}
-        rotationIntensity={2}
-      >
-        <Magazine position={[-2, 0, 0]} pages={pages} pageAtom={smackAtom}/>
-      </Float>
+    <group {...props}>
+      {Object.entries({
+        [magazines.smack]: {
+          position: [-2, 0, 0],
+          pictures: picturesSmack,
+          atom: smackAtom,
+        },
+        [magazines.vague]: {
+          position: [2, 0, 0],
+          pictures: picturesVague,
+          atom: vagueAtom,
+        },
+        [magazines.engineer]: {
+          position: [0, -2, 0],
+          pictures: picturesEngineer,
+          atom: engineerAtom,
+        },
+      }).map(([magazineName, config]) => (
+   
+          <Magazine
+            key={magazineName}
+            position={getPosition(config.position, magazineName)}
+            pictures={config.pictures}
+            pageAtom={config.atom}
+            magazine={magazineName}
+            onClick={() => handleMagazineClick(magazineName)}
+            isFocused={focusedMagazine === magazineName}
 
-      <Float
-        rotation-x={-Math.PI / 4}
-        floatIntensity={0.5}
-        speed={0.5}
-        rotationIntensity={2}
-      >
-        <Magazine position={[2, 0, 0]} pages={pages} pageAtom={vagueAtom}/>
-      </Float>
-
-      <Float
-        rotation-x={-Math.PI / 4}
-        floatIntensity={0.5}
-        speed={0.5}
-        rotationIntensity={2}
-      >
-        <Magazine position={[0, -2, 0]} pages={pages} pageAtom={engineerAtom}/>
-      </Float>
-
-    </>
-  )
-}
+          />
+      
+      ))}
+    </group>
+  );
+};

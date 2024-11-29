@@ -4,9 +4,9 @@ export const Experience = () => {
   return (
     <>
    
-        <Library />
+        <Library position={[0,0.5,-2]}/>
  
-      <OrbitControls />
+      {/* <OrbitControls /> */}
       <Environment preset="studio"></Environment>
       <directionalLight
         position={[2, 5, 2]}

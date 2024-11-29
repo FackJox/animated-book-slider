@@ -85,10 +85,14 @@ const pageMaterials = [
   }),
 ];
 
-export const Page = ({ number, front, back, page, opened, bookClosed, pages, setPage, ...props }) => {
+
+
+export const Page = ({ number, front, back, page, magazine, opened, pages, bookClosed, setPage, ...props }) => {
+
+  
   const [picture, picture2, pictureRoughness] = useTexture([
-    `/textures/smack/${front}.png`,
-    `/textures/smack/${back}.png`,
+    `/textures/${magazine}/${front}.png`,
+    `/textures/${magazine}/${back}.png`,
     ...(number === 0 || number === pages.length - 1
       ? [`/textures/book-cover-roughness.png`]
       : []),
@@ -238,11 +242,11 @@ export const Page = ({ number, front, back, page, opened, bookClosed, pages, set
           e.stopPropagation();
           setHighlighted(false);
         }}
-        onClick={(e) => {
-          e.stopPropagation();
-          setPage(opened ? number : number + 1);
-          setHighlighted(false);
-        }}
+        // onClick={(e) => {
+        //   e.stopPropagation();
+        //   setPage(opened ? number : number + 1);
+        //   setHighlighted(false);
+        // }}
       >
         <primitive
           object={manualSkinnedMesh}

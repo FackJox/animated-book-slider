@@ -1,13 +1,44 @@
 import { atom, useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { Page } from "./Page";
-import { useTexture } from "@react-three/drei";
+import { Float, useTexture } from "@react-three/drei";
 
-
-
-export const Magazine = ({ pages, pageAtom, ...props }) => {
+export const Magazine = ({
+  pictures,
+  magazine,
+  pageAtom,
+  onClick,
+  isFocused,
+  ...props
+}) => {
   const [page, setPage] = useAtom(pageAtom);
   const [delayedPage, setDelayedPage] = useState(page);
+
+  const pages = [
+    {
+      front: "01Front",
+      back: pictures[0],
+    },
+  ];
+
+  for (let i = 1; i < pictures.length - 1; i += 2) {
+    pages.push({
+      front: pictures[i % pictures.length],
+      back: pictures[(i + 1) % pictures.length],
+    });
+  }
+
+  pages.push({
+    front: pictures[pictures.length - 1],
+    back: "01Front",
+  });
+
+  // Preload textures
+  pages.forEach((page) => {
+    useTexture.preload(`/textures/${magazine}/${page.front}.png`);
+    useTexture.preload(`/textures/${magazine}/${page.back}.png`);
+    useTexture.preload(`/textures/book-cover-roughness.png`);
+  });
 
   useEffect(() => {
     const audio = new Audio("/audios/page-flip-01a.mp3");
@@ -42,20 +73,45 @@ export const Magazine = ({ pages, pageAtom, ...props }) => {
     };
   }, [page]);
 
+  console.log("position", magazine, props.position);
+
+  const pageElements = [...pages].map((pageData, index) => (
+    <Page
+      key={index}
+      page={delayedPage}
+      number={index}
+      magazine={magazine}
+      opened={delayedPage > index}
+      bookClosed={delayedPage === 0 || delayedPage === pages.length}
+      pages={pages}
+      setPage={setPage}
+      {...pageData}
+    />
+  ));
+
   return (
-    <group {...props} rotation-y={-Math.PI / 2}>
-      {[...pages].map((pageData, index) => (
-        <Page
-          key={index}
-          page={delayedPage}
-          number={index}
-          opened={delayedPage > index}
-          bookClosed={delayedPage === 0 || delayedPage === pages.length}
-          pages={pages}
-          setPage={setPage}
-          {...pageData}
-        />
-      ))}
+    <group
+      {...props}
+      rotation-y={-Math.PI / 2}
+      rotation-x={2.1 * Math.PI}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
+    >
+      {isFocused ? (
+        pageElements
+      ) : (
+        <Float
+          key={magazine}
+          rotation={[4 * Math.PI, 1 * Math.PI, 1.8 * Math.PI]}
+          floatIntensity={1}
+          speed={2}
+          rotationIntensity={2}
+        >
+          {pageElements}
+        </Float>
+      )}
     </group>
   );
 };
