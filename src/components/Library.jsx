@@ -1,7 +1,8 @@
 import { Float, useTexture } from "@react-three/drei";
 import { atom, useAtom } from "jotai";
 import { Magazine } from "./Magazine";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
+import { useThree } from '@react-three/fiber';
 
 const smackAtom = atom(0);
 const vagueAtom = atom(0);
@@ -73,8 +74,10 @@ const magazines = {
 
 export const Library = ({ ...props }) => {
   const [focusedMagazine, setFocusedMagazine] = useAtom(focusedMagazineAtom);
+  const { camera } = useThree();
 
   const handleMagazineClick = (magazineName) => {
+    console.log("click")
     setFocusedMagazine(focusedMagazine === magazineName ? null : magazineName);
   };
 
@@ -82,9 +85,9 @@ export const Library = ({ ...props }) => {
     return [-0.75, -1, 3]; // Consistent focused position for all magazines
   };
 
-  const getUnfocusedPosition = (defaultPosition) => {
-    return [defaultPosition[0] * 1.5, defaultPosition[1] * 1.5, -2];
-  };
+  // const getUnfocusedPosition = (defaultPosition) => {
+  //   return [defaultPosition[0] * 1.5, defaultPosition[1] * 1.5, -2];
+  // };
 
   const getPosition = (defaultPosition, magazineName) => {
     if (focusedMagazine === null) {
@@ -93,7 +96,7 @@ export const Library = ({ ...props }) => {
     if (focusedMagazine === magazineName) {
       return getFocusedPosition();
     }
-    return getUnfocusedPosition(defaultPosition);
+    // return getUnfocusedPosition(defaultPosition);
   };
 
   // const getRotation = (magazineName) => {
@@ -102,6 +105,15 @@ export const Library = ({ ...props }) => {
   //   }
   //   return [-Math.PI / 4, 0, 0]; // Default rotation
   // };
+
+  useEffect(() => {
+    if (focusedMagazine) {
+      const focusedPosition = getFocusedPosition();
+      // camera.position.set(focusedPosition[0], focusedPosition[1], focusedPosition[2] + 5); // Adjust the Z position to move the camera back
+      camera.lookAt(focusedPosition[0], focusedPosition[1], focusedPosition[2]);
+    }
+      // console.log("🚀 ~ useEffect ~ camera.position:", camera.position)
+  }, [focusedMagazine, camera]);
 
   return (
     <group {...props}>
