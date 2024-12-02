@@ -73,7 +73,7 @@ export const Magazine = ({
     };
   }, [page]);
 
-  console.log("position", magazine, props.position);
+  // console.log("position", magazine, props.position);
 
   const pageElements = [...pages].map((pageData, index) => (
     <Page
