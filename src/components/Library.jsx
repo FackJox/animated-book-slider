@@ -75,7 +75,7 @@ export const Library = ({ ...props }) => {
   const [focusedMagazine, setFocusedMagazine] = useAtom(focusedMagazineAtom);
 
   const handleMagazineClick = (magazineName) => {
-    setFocusedMagazine(focusedMagazine === magazineName ? null : magazineName);
+    // setFocusedMagazine(focusedMagazine === magazineName ? null : magazineName);
   };
 
   const getFocusedPosition = () => {

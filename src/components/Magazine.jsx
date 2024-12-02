@@ -92,8 +92,8 @@ export const Magazine = ({
   return (
     <group
       {...props}
-      rotation-y={-Math.PI / 2}
-      rotation-x={2.1 * Math.PI}
+      rotation-y={ 0.5 * Math.PI }
+      rotation-x={-0.2 * Math.PI}
       onClick={(e) => {
         e.stopPropagation();
         onClick?.();
