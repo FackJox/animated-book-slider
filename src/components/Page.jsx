@@ -1,4 +1,4 @@
-import { useCursor, useTexture } from "@react-three/drei";
+import { Html, useCursor, useTexture } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { atom, useAtom } from "jotai";
 import { easing } from "maath";
@@ -17,6 +17,10 @@ import {
   Vector3,
 } from "three";
 import { degToRad } from "three/src/math/MathUtils.js";
+
+export const animationProgressAtom = atom(0); // 0 to 1
+export const manualControlAtom = atom(false); // Toggle between auto and manual
+
 
 // Constants
 const PAGE_WIDTH = 1.28;
@@ -88,6 +92,9 @@ const pageMaterials = [
 
 
 export const Page = ({ number, front, back, page, magazine, opened, pages, bookClosed, setPage, ...props }) => {
+// Add these near the top of the component
+const [animationProgress] = useAtom(animationProgressAtom);
+const [isManualControl] = useAtom(manualControlAtom);
 
   
   const [picture, picture2, pictureRoughness] = useTexture([
@@ -160,12 +167,13 @@ export const Page = ({ number, front, back, page, magazine, opened, pages, bookC
 
  const [highlighted, setHighlighted] = useState(false);
   useCursor(highlighted);
+  
 
   useFrame((_, delta) => {
     if (!skinnedMeshRef.current) {
       return;
     }
-
+  
     const emissiveIntensity = highlighted ? 0.22 : 0;
     skinnedMeshRef.current.material[4].emissiveIntensity =
       skinnedMeshRef.current.material[5].emissiveIntensity = MathUtils.lerp(
@@ -173,64 +181,88 @@ export const Page = ({ number, front, back, page, magazine, opened, pages, bookC
         emissiveIntensity,
         0.1
       );
-
-    if (lastOpened.current !== opened) {
-      turnedAt.current = +new Date();
-      lastOpened.current = opened;
+  
+    // Calculate turning time and target rotation based on control mode
+    let turningTime;
+    let targetRotation;
+  
+    if (isManualControl) {
+      // For manual control, map the slider value directly to rotation
+      turningTime = animationProgress;
+      // Interpolate between start and end rotation based on slider
+      targetRotation = MathUtils.lerp(Math.PI / 2, -Math.PI / 2, animationProgress);
+      lastOpened.current = animationProgress > 0.5;
+    } else {
+      // Original automatic animation
+      if (lastOpened.current !== opened) {
+        turnedAt.current = +new Date();
+        lastOpened.current = opened;
+      }
+      turningTime = Math.min(400, new Date() - turnedAt.current) / 400;
+      targetRotation = opened ? -Math.PI / 2 : Math.PI / 2;
     }
-    let turningTime = Math.min(400, new Date() - turnedAt.current) / 400;
+  
+    // Apply sine curve to create smooth animation
     turningTime = Math.sin(turningTime * Math.PI);
-
-    let targetRotation = opened ? -Math.PI / 2 : Math.PI / 2;
+  
     if (!bookClosed) {
       targetRotation += degToRad(number * 0.8);
     }
-
+  
     const bones = skinnedMeshRef.current.skeleton.bones;
     for (let i = 0; i < bones.length; i++) {
       const target = i === 0 ? group.current : bones[i];
-
+  
+      // Calculate curve intensities
       const insideCurveIntensity = i < 8 ? Math.sin(i * 0.2 + 0.25) : 0;
       const outsideCurveIntensity = i >= 8 ? Math.cos(i * 0.3 + 0.09) : 0;
       const turningIntensity =
         Math.sin(i * Math.PI * (1 / bones.length)) * turningTime;
+  
+      // Calculate rotation angles
       let rotationAngle =
         insideCurveStrength * insideCurveIntensity * targetRotation -
         outsideCurveStrength * outsideCurveIntensity * targetRotation +
         turningCurveStrength * turningIntensity * targetRotation;
+      
       let foldRotationAngle = degToRad(Math.sign(targetRotation) * 2);
+  
       if (bookClosed) {
         if (i === 0) {
-            rotationAngle = targetRotation;
-            foldRotationAngle = 0;
-          } else {
-            rotationAngle = 0;
-            foldRotationAngle = 0;
-          }
+          rotationAngle = targetRotation;
+          foldRotationAngle = 0;
+        } else {
+          rotationAngle = 0;
+          foldRotationAngle = 0;
         }
-        easing.dampAngle(
-          target.rotation,
-          "y",
-          rotationAngle,
-          easingFactor,
-          delta
-        );
-  
-        const foldIntensity =
-          i > 8
-            ? Math.sin(i * Math.PI * (1 / bones.length) - 0.5) * turningTime
-            : 0;
-        easing.dampAngle(
-          target.rotation,
-          "x",
-          foldRotationAngle * foldIntensity,
-          easingFactorFold,
-          delta
-        );
       }
-    });
   
+      // Apply rotations with easing
+      easing.dampAngle(
+        target.rotation,
+        "y",
+        rotationAngle,
+        easingFactor,
+        delta
+      );
+  
+      // Apply folding effect
+      const foldIntensity =
+        i > 8
+          ? Math.sin(i * Math.PI * (1 / bones.length) - 0.5) * turningTime
+          : 0;
+      easing.dampAngle(
+        target.rotation,
+        "x",
+        foldRotationAngle * foldIntensity,
+        easingFactorFold,
+        delta
+      );
+    }
+  });
+
     return (
+      <>
       <group
         {...props}
         ref={group}
@@ -253,6 +285,8 @@ export const Page = ({ number, front, back, page, magazine, opened, pages, bookC
           ref={skinnedMeshRef}
           position-z={-number * PAGE_DEPTH + page * PAGE_DEPTH}
         />
+
       </group>
+              </>
     );
   };

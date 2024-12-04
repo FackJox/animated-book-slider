@@ -1,7 +1,45 @@
+import { useAtom } from 'jotai';
+import { animationProgressAtom, manualControlAtom } from './Page';
+
 export const UI = () => {
+
+  const [animationProgress, setAnimationProgress] = useAtom(animationProgressAtom);
+  const [isManualControl, setIsManualControl] = useAtom(manualControlAtom);
+
   return (
     <>
+
+
       <main className=" pointer-events-none select-none z-10 fixed  inset-0  flex justify-between flex-col">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/50 text-white">
+      <div className="max-w-3xl mx-auto pointer-events-auto">
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={isManualControl}
+              onChange={(e) => setIsManualControl(e.target.checked)}
+              />
+            Manual Control
+          </label>
+          
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.001"
+            value={animationProgress}
+            onChange={(e) => setAnimationProgress(parseFloat(e.target.value))}
+            className="w-full"
+            disabled={!isManualControl}
+            />
+          
+          <span className="w-12 text-right">
+            {(animationProgress * 100).toFixed(0)}%
+          </span>
+        </div>
+      </div>
+    </div>
           {/* <a
             className="pointer-events-auto mt-10 ml-10"
             href="https://lessons.wawasensei.dev/courses/react-three-fiber"
