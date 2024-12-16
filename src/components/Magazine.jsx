@@ -253,7 +253,7 @@ export const Magazine = ({
         material={
           new THREE.MeshBasicMaterial({
             transparent: true,
-            opacity: 1,
+            opacity: 0,
           })
         }
         onPointerDown={(e) => {
