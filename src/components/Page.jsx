@@ -242,11 +242,11 @@ export const Page = ({ number, front, back, page, magazine, opened, pages, bookC
           e.stopPropagation();
           setHighlighted(false);
         }}
-        onClick={(e) => {
-          e.stopPropagation();
-          setPage(opened ? number : number + 1);
-          setHighlighted(false);
-        }}
+        // onClick={(e) => {
+        //   e.stopPropagation();
+        //   // setPage(opened ? number : number + 1);
+        //   setHighlighted(false);
+        // }}
       >
         <primitive
           object={manualSkinnedMesh}

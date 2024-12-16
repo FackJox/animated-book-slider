@@ -1,13 +1,17 @@
+// Library.js
 import { Float, useTexture } from "@react-three/drei";
 import { atom, useAtom } from "jotai";
 import { Magazine } from "./Magazine";
 import { useEffect, useRef } from "react";
-import { useThree } from '@react-three/fiber';
+import { useThree } from "@react-three/fiber";
 
+// Atoms for page states
 const smackAtom = atom(0);
 const vagueAtom = atom(0);
 const engineerAtom = atom(0);
-const focusedMagazineAtom = atom(null); // Add this atom to track which magazine is focused
+
+// Atom to track the focused magazine
+export const focusedMagazineAtom = atom(null);
 
 const picturesSmack = [
   "02Contents",
@@ -66,6 +70,8 @@ const picturesVague = [
   "11Contributers",
 ];
 
+
+
 const magazines = {
   vague: "vague",
   engineer: "engineer",
@@ -73,47 +79,6 @@ const magazines = {
 };
 
 export const Library = ({ ...props }) => {
-  const [focusedMagazine, setFocusedMagazine] = useAtom(focusedMagazineAtom);
-  const { camera } = useThree();
-
-  const handleMagazineClick = (magazineName) => {
-    // setFocusedMagazine(focusedMagazine === magazineName ? null : magazineName);
-  };
-
-  const getFocusedPosition = () => {
-    return [-0.75, -1, 3]; // Consistent focused position for all magazines
-  };
-
-  // const getUnfocusedPosition = (defaultPosition) => {
-  //   return [defaultPosition[0] * 1.5, defaultPosition[1] * 1.5, -2];
-  // };
-
-  const getPosition = (defaultPosition, magazineName) => {
-    if (focusedMagazine === null) {
-      return defaultPosition;
-    }
-    if (focusedMagazine === magazineName) {
-      return getFocusedPosition();
-    }
-    // return getUnfocusedPosition(defaultPosition);
-  };
-
-  // const getRotation = (magazineName) => {
-  //   if (focusedMagazine === magazineName) {
-  //     return [-Math.PI / 8, 0, 0]; // Consistent focused rotation
-  //   }
-  //   return [-Math.PI / 4, 0, 0]; // Default rotation
-  // };
-
-  useEffect(() => {
-    if (focusedMagazine) {
-      const focusedPosition = getFocusedPosition();
-      // camera.position.set(focusedPosition[0], focusedPosition[1], focusedPosition[2] + 5); // Adjust the Z position to move the camera back
-      camera.lookAt(focusedPosition[0], focusedPosition[1], focusedPosition[2]);
-    }
-      // console.log("🚀 ~ useEffect ~ camera.position:", camera.position)
-  }, [focusedMagazine, camera]);
-
   return (
     <group {...props}>
       {Object.entries({
@@ -133,18 +98,15 @@ export const Library = ({ ...props }) => {
           atom: engineerAtom,
         },
       }).map(([magazineName, config]) => (
-   
-          <Magazine
-            key={magazineName}
-            position={getPosition(config.position, magazineName)}
-            pictures={config.pictures}
-            pageAtom={config.atom}
-            magazine={magazineName}
-            onClick={() => handleMagazineClick(magazineName)}
-            isFocused={focusedMagazine === magazineName}
-
-          />
-      
+        <Magazine
+          key={magazineName}
+          position={config.position}
+          pictures={config.pictures}
+          pageAtom={config.atom}
+          magazine={magazineName}
+          // Pass the focusedMagazineAtom to each Magazine
+          focusedMagazineAtom={focusedMagazineAtom}
+        />
       ))}
     </group>
   );
