@@ -1,4 +1,4 @@
-import { useCursor, useTexture } from "@react-three/drei";
+import { useTexture } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { atom, useAtom } from "jotai";
 import { easing } from "maath";
@@ -87,9 +87,7 @@ const pageMaterials = [
 
 
 
-export const Page = ({ number, front, back, page, magazine, opened, pages, bookClosed, setPage, ...props }) => {
-
-  
+export const Page = ({ number, front, back, page, magazine, opened, pages, bookClosed, setPage, highlighted, isFocused, ...props }) => {
   const [picture, picture2, pictureRoughness] = useTexture([
     `/textures/${magazine}/${front}.png`,
     `/textures/${magazine}/${back}.png`,
@@ -98,6 +96,7 @@ export const Page = ({ number, front, back, page, magazine, opened, pages, bookC
       : []),
   ]);
   picture.colorSpace = picture2.colorSpace = SRGBColorSpace;
+
   const group = useRef();
   const turnedAt = useRef(0);
   const lastOpened = useRef(opened);
@@ -158,15 +157,13 @@ export const Page = ({ number, front, back, page, magazine, opened, pages, bookC
     return mesh;
   }, []);
 
- const [highlighted, setHighlighted] = useState(false);
-  useCursor(highlighted);
 
   useFrame((_, delta) => {
     if (!skinnedMeshRef.current) {
       return;
     }
 
-    const emissiveIntensity = highlighted ? 0.22 : 0;
+    const emissiveIntensity = highlighted && !isFocused ? 0.22 : 0;
     skinnedMeshRef.current.material[4].emissiveIntensity =
       skinnedMeshRef.current.material[5].emissiveIntensity = MathUtils.lerp(
         skinnedMeshRef.current.material[4].emissiveIntensity,
@@ -230,24 +227,9 @@ export const Page = ({ number, front, back, page, magazine, opened, pages, bookC
       }
     });
   
+  
     return (
-      <group
-        {...props}
-        ref={group}
-        onPointerEnter={(e) => {
-          e.stopPropagation();
-          setHighlighted(true);
-        }}
-        onPointerLeave={(e) => {
-          e.stopPropagation();
-          setHighlighted(false);
-        }}
-        // onClick={(e) => {
-        //   e.stopPropagation();
-        //   // setPage(opened ? number : number + 1);
-        //   setHighlighted(false);
-        // }}
-      >
+      <group {...props} ref={group}>
         <primitive
           object={manualSkinnedMesh}
           ref={skinnedMeshRef}

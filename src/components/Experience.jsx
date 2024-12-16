@@ -7,10 +7,11 @@ export const Experience = () => {
         <Library position={[0,0.5,-2]}/>
  
       {/* <OrbitControls /> */}
-      <Environment preset="studio"></Environment>
+      {/* <Environment preset="studio"></Environment> */}
+      <ambientLight intensity={0.2} />
       <directionalLight
         position={[2, 5, 2]}
-        intensity={0.1}
+        intensity={0.7}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}

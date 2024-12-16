@@ -1,8 +1,7 @@
-// Magazine.js
 import { atom, useAtom } from "jotai";
 import { useEffect, useState, useRef } from "react";
 import { Page } from "./Page";
-import { Float, useTexture } from "@react-three/drei";
+import { Float, useCursor, useTexture } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -18,8 +17,14 @@ export const Magazine = ({
   const swipeRef = useRef({ startX: 0, startY: 0 });
   const groupRef = useRef();
 
-  // Consume the focusedMagazineAtom
   const [focusedMagazine, setFocusedMagazine] = useAtom(focusedMagazineAtom);
+    // Add highlighted state
+    const [highlighted, setHighlighted] = useState(false);
+
+    // Use useCursor to change the cursor
+    useCursor(highlighted && focusedMagazine !== magazine);
+
+  // Consume the focusedMagazineAtom
 
   const { camera } = useThree();
 
@@ -199,6 +204,8 @@ export const Magazine = ({
         // Slerp towards the target camera quaternion
         camera.quaternion.slerp(targetCameraQuaternion, 0.1);
       } else {
+        setPage(0)
+
         // Lerp magazine back to initial position
         groupRef.current.position.lerp(initialPositionRef.current, 0.1);
 
@@ -219,13 +226,15 @@ export const Magazine = ({
           0.1
         );
 
+
+
         // Smoothly return the camera to its original rotation
         camera.quaternion.slerp(initialCameraQuaternionRef.current, 0.1);
       }
     }
   });
 
-  const pageElements = [...pages].map((pageData, index) => (
+  const pageElements = pages.map((pageData, index) => (
     <Page
       key={index}
       page={delayedPage}
@@ -235,27 +244,30 @@ export const Magazine = ({
       bookClosed={delayedPage === 0 || delayedPage === pages.length}
       pages={pages}
       setPage={setPage}
+      highlighted={highlighted}
+      isFocused={focusedMagazine === magazine}
       {...pageData}
     />
   ));
 
   return (
-    <group
-      {...props}
-      ref={groupRef}
-      rotation={[-20,-3,0]}
-    >
+    <group {...props} ref={groupRef} rotation={[-20, -3, 0]}>
       <mesh
-        // Increase the size to cover the magazine area
-        // Adjust the size (args) as needed based on your magazine dimensions
         geometry={new THREE.BoxGeometry(1, 1, 2)}
-        // Make the material invisible but pickable
         material={
           new THREE.MeshBasicMaterial({
             transparent: true,
             opacity: 0,
           })
         }
+        onPointerEnter={(e) => {
+          e.stopPropagation();
+          setHighlighted(true);
+        }}
+        onPointerLeave={(e) => {
+          e.stopPropagation();
+          setHighlighted(false);
+        }}
         onPointerDown={(e) => {
           e.stopPropagation();
           handlePointerDown(e);
