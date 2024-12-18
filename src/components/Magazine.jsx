@@ -60,16 +60,22 @@ export const Magazine = ({
   }, [page]);
 
   const handlePointerDown = (e) => {
-    swipeRef.current.startX = e.clientX;
-    swipeRef.current.startY = e.clientY;
+    e.preventDefault(); // Prevent default behavior for touch events
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    swipeRef.current.startX = clientX;
+    swipeRef.current.startY = clientY;
   };
-
+  
   const handlePointerUp = (e) => {
-    const deltaX = e.clientX - swipeRef.current.startX;
-    const deltaY = e.clientY - swipeRef.current.startY;
-
+    e.preventDefault(); // Prevent default behavior for touch events
+    const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+    const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+    const deltaX = clientX - swipeRef.current.startX;
+    const deltaY = clientY - swipeRef.current.startY;
+  
     const totalMovement = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
+  
     if (totalMovement < 5) {
       // Treat as click
       e.stopPropagation(); // Stop propagation to prevent unintended interactions
@@ -273,6 +279,15 @@ export const Magazine = ({
           handlePointerDown(e);
         }}
         onPointerUp={(e) => {
+          e.stopPropagation();
+          handlePointerUp(e);
+        }}
+
+        onTouchStart={(e) => {
+          e.stopPropagation();
+          handlePointerDown(e);
+        }}
+        onTouchEnd={(e) => {
           e.stopPropagation();
           handlePointerUp(e);
         }}
