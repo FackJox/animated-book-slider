@@ -59,43 +59,75 @@ export const Magazine = ({
     audio.play();
   }, [page]);
 
-  const handlePointerDown = (e) => {
-    if (e.preventDefault) e.preventDefault(); // Check if preventDefault exists
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  const handleStart = (e) => {
+    console.log("handleStart called", e.type);
+    if (e.preventDefault) e.preventDefault();
+    
+    let clientX, clientY;
+    if (e.type === 'touchstart') {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    
     swipeRef.current.startX = clientX;
     swipeRef.current.startY = clientY;
+    console.log("Start position:", { x: clientX, y: clientY });
   };
-  
-  const handlePointerUp = (e) => {
-    if (e.preventDefault) e.preventDefault(); // Check if preventDefault exists
-    const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-    const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+
+  const handleEnd = (e) => {
+    console.log("handleEnd called", e.type);
+    if (e.preventDefault) e.preventDefault();
+    
+    let clientX, clientY;
+    if (e.type === 'touchend') {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    
     const deltaX = clientX - swipeRef.current.startX;
     const deltaY = clientY - swipeRef.current.startY;
-  
+    handleSwipeOrClick(deltaX, deltaY, e);
+  };
+
+
+  const handleSwipeOrClick = (deltaX, deltaY, e) => {
+    console.log("End position:", { x: swipeRef.current.startX + deltaX, y: swipeRef.current.startY + deltaY });
+    console.log("Delta:", { x: deltaX, y: deltaY });
+
     const totalMovement = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-  
+    console.log("Total movement:", totalMovement);
+
     if (totalMovement < 5) {
-      // Treat as click
-      e.stopPropagation(); // Stop propagation to prevent unintended interactions
+      console.log("Treating as click");
+      e.stopPropagation();
       if (focusedMagazine !== magazine) {
         setFocusedMagazine(magazine);
+        console.log("Focusing magazine:", magazine);
       } else {
         setFocusedMagazine(null);
+        console.log("Unfocusing magazine");
       }
     } else {
-      // Handle swipe
-      // Check if the movement is more horizontal than vertical
+      console.log("Handling swipe");
       if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        // Determine swipe direction and change page
+        console.log("Horizontal swipe detected");
         if (deltaX > 50 && page > 0) {
-          // Swipe right, go to previous page
           setPage(page - 1);
+          console.log("Swiped right, new page:", page - 1);
         } else if (deltaX < -50 && page < pages.length - 1) {
-          // Swipe left, go to next page
           setPage(page + 1);
+          console.log("Swiped left, new page:", page + 1);
+        } else {
+          console.log("Swipe not significant enough to change page");
         }
+      } else {
+        console.log("Vertical swipe detected, ignoring");
       }
     }
   };
@@ -275,17 +307,24 @@ export const Magazine = ({
           setHighlighted(false);
         }}
         onPointerDown={(e) => {
-          handlePointerDown(e);
+          e.stopPropagation();
+          console.log("onPointerDown triggered");
+          handleStart(e);
         }}
         onPointerUp={(e) => {
-          handlePointerUp(e);
+          e.stopPropagation();
+          console.log("onPointerUp triggered");
+          handleEnd(e);
         }}
-
         onTouchStart={(e) => {
-          handlePointerDown(e);
+          e.stopPropagation();
+          console.log("onTouchStart triggered");
+          handleStart(e);
         }}
         onTouchEnd={(e) => {
-          handlePointerUp(e);
+          e.stopPropagation();
+          console.log("onTouchEnd triggered");
+          handleEnd(e);
         }}
       >
         <group>
