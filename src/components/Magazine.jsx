@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { Page } from "./Page";
 import { Float, useCursor, useTexture } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
+import { useGesture } from "@use-gesture/react";
 import * as THREE from "three";
 
 export const Magazine = ({
@@ -14,34 +15,29 @@ export const Magazine = ({
 }) => {
   const [page, setPage] = useAtom(pageAtom);
   const [delayedPage, setDelayedPage] = useState(page);
-  const swipeRef = useRef({ startX: 0, startY: 0 });
   const groupRef = useRef();
 
   const [focusedMagazine, setFocusedMagazine] = useAtom(focusedMagazineAtom);
-    // Add highlighted state
-    const [highlighted, setHighlighted] = useState(false);
+  const [highlighted, setHighlighted] = useState(false);
 
-    // Use useCursor to change the cursor
-    useCursor(highlighted && focusedMagazine !== magazine);
-
-  // Consume the focusedMagazineAtom
+  // Use useCursor to change the cursor
+  useCursor(highlighted && focusedMagazine !== magazine);
 
   const { camera } = useThree();
 
+  // Build the pages array
   const pages = [
     {
       front: "01Front",
       back: pictures[0],
     },
   ];
-
   for (let i = 1; i < pictures.length - 1; i += 2) {
     pages.push({
       front: pictures[i % pictures.length],
       back: pictures[(i + 1) % pictures.length],
     });
   }
-
   pages.push({
     front: pictures[pictures.length - 1],
     back: "01Front",
@@ -59,50 +55,46 @@ export const Magazine = ({
     audio.play();
   }, [page]);
 
-  const handleStart = (e) => {
-    console.log("handleStart called", e.type);
-    if (e.preventDefault) e.preventDefault();
-    
-    let clientX, clientY;
-    if (e.type === 'touchstart') {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-    
-    swipeRef.current.startX = clientX;
-    swipeRef.current.startY = clientY;
-    console.log("Start position:", { x: clientX, y: clientY });
+  // You can keep your event logger if you still want to see details
+  const logEventDetails = (e, eventName) => {
+    console.log(`${eventName} event details:`, {
+      type: e.type,
+      pointerType: e.pointerType,
+      target: e.target,
+      currentTarget: e.currentTarget,
+      clientX: e.clientX,
+      clientY: e.clientY,
+      touches: e.touches
+        ? Array.from(e.touches).map((t) => ({
+            clientX: t.clientX,
+            clientY: t.clientY,
+          }))
+        : undefined,
+      changedTouches: e.changedTouches
+        ? Array.from(e.changedTouches).map((t) => ({
+            clientX: t.clientX,
+            clientY: t.clientY,
+          }))
+        : undefined,
+    });
   };
 
-  const handleEnd = (e) => {
-    console.log("handleEnd called", e.type);
-    if (e.preventDefault) e.preventDefault();
-    
-    let clientX, clientY;
-    if (e.type === 'touchend') {
-      clientX = e.changedTouches[0].clientX;
-      clientY = e.changedTouches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-    
-    const deltaX = clientX - swipeRef.current.startX;
-    const deltaY = clientY - swipeRef.current.startY;
-    handleSwipeOrClick(deltaX, deltaY, e);
-  };
-
-
+  // Handle swipe or click logic
   const handleSwipeOrClick = (deltaX, deltaY, e) => {
-    console.log("End position:", { x: swipeRef.current.startX + deltaX, y: swipeRef.current.startY + deltaY });
+    console.log("handleSwipeOrClick called");
     console.log("Delta:", { x: deltaX, y: deltaY });
+
+      // If there's a focused magazine and it's not this one, ignore the interaction
+  if (focusedMagazine && focusedMagazine !== magazine) {
+    console.log("Ignoring interaction for non-focused magazine");
+    return;
+  }
+
 
     const totalMovement = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
     console.log("Total movement:", totalMovement);
 
+    // Very small movement → treat as click
     if (totalMovement < 5) {
       console.log("Treating as click");
       e.stopPropagation();
@@ -116,7 +108,6 @@ export const Magazine = ({
     } else {
       console.log("Handling swipe");
       if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        console.log("Horizontal swipe detected");
         if (deltaX > 50 && page > 0) {
           setPage(page - 1);
           console.log("Swiped right, new page:", page - 1);
@@ -132,24 +123,50 @@ export const Magazine = ({
     }
   };
 
+  // UseGesture to unify pointer/touch events
+  const bind = useGesture(
+    {
+      onDrag: ({ first, last, movement: [dx, dy], event }) => {
+        // Prevent default to avoid scrolling on mobile
+        if (event.preventDefault) event.preventDefault();
+
+        if (first) {
+          logEventDetails(event, "onDragStart");
+        }
+        if (last) {
+          logEventDetails(event, "onDragEnd");
+          handleSwipeOrClick(dx, dy, event);
+        }
+      },
+      // onPointerDown: (event) => {
+      //   // If this magazine is focused or there's no focused magazine, stop propagation
+      //   if (focusedMagazine === magazine || !focusedMagazine) {
+      //     event.stopPropagation();
+      //   }
+      // },
+    },
+    {
+      eventOptions: { passive: false },
+    }
+  );
+
+  // Delay page turning animation
   useEffect(() => {
     let timeout;
     const goToPage = () => {
-      setDelayedPage((delayedPage) => {
-        if (page === delayedPage) {
-          return delayedPage;
+      setDelayedPage((delayed) => {
+        if (page === delayed) {
+          return delayed;
         } else {
-          timeout = setTimeout(
-            () => {
-              goToPage();
-            },
-            Math.abs(page - delayedPage) > 2 ? 50 : 150
-          );
-          if (page > delayedPage) {
-            return delayedPage + 1;
+          timeout = setTimeout(() => {
+            goToPage();
+          }, Math.abs(page - delayed) > 2 ? 50 : 150);
+
+          if (page > delayed) {
+            return delayed + 1;
           }
-          if (page < delayedPage) {
-            return delayedPage - 1;
+          if (page < delayed) {
+            return delayed - 1;
           }
         }
       });
@@ -160,94 +177,62 @@ export const Magazine = ({
     };
   }, [page]);
 
-  // Refs to store initial position and rotation
+  // Refs to store initial position/rotation
   const initialPositionRef = useRef();
   const initialRotationRef = useRef();
-
-  // New refs to store initial camera rotation and position
   const initialCameraQuaternionRef = useRef();
 
   useEffect(() => {
     if (props.position) {
       initialPositionRef.current = new THREE.Vector3(...props.position);
     } else {
-      // Set a default position if props.position is not provided
       initialPositionRef.current = new THREE.Vector3(0, 0, 0);
     }
-    initialRotationRef.current = new THREE.Euler(
-      -0.2 * Math.PI,
-      0.5 * Math.PI,
-      0
-    );
+    initialRotationRef.current = new THREE.Euler(-0.2 * Math.PI, 0.5 * Math.PI, 0);
     initialCameraQuaternionRef.current = camera.quaternion.clone();
+
     return () => {
-      // Cleanup function
       initialPositionRef.current = undefined;
       initialRotationRef.current = undefined;
       initialCameraQuaternionRef.current = undefined;
     };
   }, [props.position, camera]);
 
-  // useFrame to update positions and rotations
+  // Animate position/rotation based on focus
   useFrame(() => {
     if (groupRef.current && initialPositionRef.current) {
       if (focusedMagazine === magazine) {
         // Lerp magazine position to a position in front of the camera
         const targetPosition = camera.position
           .clone()
-          .add(
-            camera
-              .getWorldDirection(new THREE.Vector3())
-              .multiplyScalar(-2) // Adjust the scalar as needed
-          )
-          .add(new THREE.Vector3(0, -1.7, -2.5)); // Adjust these values as needed
+          .add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(-2))
+          .add(new THREE.Vector3(0, -1.7, -2.5));
 
         groupRef.current.position.lerp(targetPosition, 0.1);
 
-        // Calculate the angle to face the camera in the XZ plane
+        // Face the camera
         const angleToCamera = Math.atan2(
           camera.position.x - groupRef.current.position.x,
           camera.position.z - groupRef.current.position.z
         );
-
-        // Compute the target rotation (adjusted with initial rotation)
-        const targetRotation = new THREE.Euler(
-          0,
-          angleToCamera - Math.PI / 2,
-          0
-        );
-
-        // Convert the target rotation to a quaternion
-        const targetQuaternion = new THREE.Quaternion().setFromEuler(
-          targetRotation
-        );
-
-        // Slerp towards the target quaternion
+        const targetRotation = new THREE.Euler(0, angleToCamera - Math.PI / 2, 0);
+        const targetQuaternion = new THREE.Quaternion().setFromEuler(targetRotation);
         groupRef.current.quaternion.slerp(targetQuaternion, 0.1);
 
-        // Smoothly adjust the camera to look at the magazine center
+        // Smoothly adjust camera to look at the magazine center
         const magazinePosition = new THREE.Vector3();
         groupRef.current.getWorldPosition(magazinePosition);
-
-        // Save current camera quaternion
         const currentCameraQuaternion = camera.quaternion.clone();
-
-        // Point the camera to the magazine
         camera.lookAt(magazinePosition);
         const targetCameraQuaternion = camera.quaternion.clone();
-
-        // Restore the original camera quaternion
         camera.quaternion.copy(currentCameraQuaternion);
-
-        // Slerp towards the target camera quaternion
         camera.quaternion.slerp(targetCameraQuaternion, 0.1);
       } else {
-        setPage(0)
+        // If unfocused, reset page to 0
+        setPage(0);
 
-        // Lerp magazine back to initial position
+        // Lerp magazine back to initial position/rotation
         groupRef.current.position.lerp(initialPositionRef.current, 0.1);
-
-        // Lerp rotation back to initial rotation
         groupRef.current.rotation.x = THREE.MathUtils.lerp(
           groupRef.current.rotation.x,
           initialRotationRef.current.x,
@@ -263,15 +248,12 @@ export const Magazine = ({
           initialRotationRef.current.z,
           0.1
         );
-
-
-
-        // Smoothly return the camera to its original rotation
         camera.quaternion.slerp(initialCameraQuaternionRef.current, 0.1);
       }
     }
   });
 
+  // Render pages
   const pageElements = pages.map((pageData, index) => (
     <Page
       key={index}
@@ -306,26 +288,10 @@ export const Magazine = ({
           e.stopPropagation();
           setHighlighted(false);
         }}
-        onPointerDown={(e) => {
-          e.stopPropagation();
-          console.log("onPointerDown triggered");
-          handleStart(e);
-        }}
-        onPointerUp={(e) => {
-          e.stopPropagation();
-          console.log("onPointerUp triggered");
-          handleEnd(e);
-        }}
-        onTouchStart={(e) => {
-          e.stopPropagation();
-          console.log("onTouchStart triggered");
-          handleStart(e);
-        }}
-        onTouchEnd={(e) => {
-          e.stopPropagation();
-          console.log("onTouchEnd triggered");
-          handleEnd(e);
-        }}
+        // Apply the useGesture binding here
+        {...bind()}
+        pointerEvents={focusedMagazine && focusedMagazine !== magazine ? 'none' : 'auto'}
+
       >
         <group>
           {focusedMagazine === magazine ? (

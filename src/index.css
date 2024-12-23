@@ -7,6 +7,8 @@
   width: 100vw;
   height: 100vh;
   background: radial-gradient(#232323, #000000  80%);
+  touch-action: none;
+
 }
 
 body {
