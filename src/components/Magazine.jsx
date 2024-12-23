@@ -60,7 +60,7 @@ export const Magazine = ({
   }, [page]);
 
   const handlePointerDown = (e) => {
-    e.preventDefault(); // Prevent default behavior for touch events
+    if (e.preventDefault) e.preventDefault(); // Check if preventDefault exists
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     swipeRef.current.startX = clientX;
@@ -68,7 +68,7 @@ export const Magazine = ({
   };
   
   const handlePointerUp = (e) => {
-    e.preventDefault(); // Prevent default behavior for touch events
+    if (e.preventDefault) e.preventDefault(); // Check if preventDefault exists
     const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
     const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
     const deltaX = clientX - swipeRef.current.startX;
@@ -275,20 +275,16 @@ export const Magazine = ({
           setHighlighted(false);
         }}
         onPointerDown={(e) => {
-          e.stopPropagation();
           handlePointerDown(e);
         }}
         onPointerUp={(e) => {
-          e.stopPropagation();
           handlePointerUp(e);
         }}
 
         onTouchStart={(e) => {
-          e.stopPropagation();
           handlePointerDown(e);
         }}
         onTouchEnd={(e) => {
-          e.stopPropagation();
           handlePointerUp(e);
         }}
       >
