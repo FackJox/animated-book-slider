@@ -125,6 +125,7 @@ export const Magazine = ({
     // Also store camera's quaternion if you want to restore it
     initialCameraQuaternionRef.current = camera.quaternion.clone();
   }, [camera]);
+  
 
   useFrame(() => {
     if (!groupRef.current || !initialPositionRef.current) return;
@@ -135,16 +136,7 @@ export const Magazine = ({
       helper.quaternion.copy(camera.quaternion);
 
       // Move forward so the magazine sits 2 units in front
-      helper.translateZ(-2);
-      helper.rotateY(-0.5 * Math.PI);
-      /*
-       * If your mesh has the “front” face along the negative-Z axis,
-       * you might need to rotate the helper by 180°, e.g.:
-       * 
-       *
-       * Or tweak Y a bit if it’s too high:
-       * helper.translateY(-1); 
-       */
+      helper.translateZ(-1.5);
 
       // Slerp magazine toward the helper's rotation
       groupRef.current.position.lerp(helper.position, 0.1);
@@ -168,27 +160,12 @@ export const Magazine = ({
     }
   });
 
-  // Render pages
-  const pageElements = pages.map((pageData, idx) => (
-    <Page
-      key={idx}
-      page={delayedPage}
-      number={idx}
-      magazine={magazine}
-      opened={delayedPage > idx}
-      bookClosed={delayedPage === 0 || delayedPage === pages.length}
-      pages={pages}
-      setPage={setPage}
-      highlighted={highlighted}
-      isFocused={focusedMagazine === magazine}
-      {...pageData}
-    />
-  ));
+
 
   return (
     <group ref={groupRef} {...props}>
       <mesh
-        geometry={new THREE.BoxGeometry(1, 1, 2)}
+        geometry={new THREE.BoxGeometry(2, 1, 1)}
         material={new THREE.MeshBasicMaterial({ transparent: true, opacity: 1 })}
         onPointerEnter={(e) => {
           e.stopPropagation();
@@ -203,20 +180,34 @@ export const Magazine = ({
           focusedMagazine && focusedMagazine !== magazine ? "none" : "auto"
         }
       >
-        <group>
-          {focusedMagazine === magazine ? (
-            pageElements
-          ) : (
-            <Float
-              rotation={[4 * Math.PI, 1 * Math.PI, 1.8 * Math.PI]}
-              floatIntensity={1}
-              speed={2}
-              rotationIntensity={2}
-            >
-              {pageElements}
-            </Float>
-          )}
-        </group>
+     <group>
+    <Float
+      // rotation={[4 * Math.PI, 1 * Math.PI, 1.8 * Math.PI]}
+      floatIntensity={1}
+      speed={2}
+      rotationIntensity={2}
+      enabled={focusedMagazine !== magazine}
+    >
+    <group rotation={[0, -Math.PI / 2, 0]}>  {/* This rotates all pages 90 degrees around the y-axis */}
+      {pages.map((pageData, idx) => (
+        <Page
+          key={idx}
+          page={delayedPage}
+          number={idx}
+          magazine={magazine}
+          opened={delayedPage > idx}
+          bookClosed={delayedPage === 0 || delayedPage === pages.length}
+          pages={pages}
+          setPage={setPage}
+          highlighted={highlighted}
+          isFocused={focusedMagazine === magazine}
+          {...pageData}
+        />
+      ))}
+    </group>
+    </Float>
+
+</group>
       </mesh>
     </group>
   );
