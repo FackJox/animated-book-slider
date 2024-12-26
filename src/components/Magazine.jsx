@@ -24,7 +24,8 @@ export const Magazine = ({
   // Helper object to position/rotate relative to the camera in focus mode
   const helper = useRef(new THREE.Object3D()).current;
 
-  const { camera } = useThree();
+  // We'll need the camera and viewport size
+  const { camera, size } = useThree();
 
   // UseCursor changes pointer if hovered & not focused
   useCursor(highlighted && focusedMagazine !== magazine);
@@ -32,7 +33,7 @@ export const Magazine = ({
   // Build the pages array from pictures
   const pages = [
     { front: "01Front", back: pictures[0] },
-    // Insert pairs
+    // Insert pairs ...
   ];
   for (let i = 1; i < pictures.length - 1; i += 2) {
     pages.push({
@@ -89,9 +90,7 @@ export const Magazine = ({
         if (last) handleSwipeOrClick(dx, dy, event);
       },
     },
-    {
-      eventOptions: { passive: false },
-    }
+    { eventOptions: { passive: false } }
   );
 
   // Smoothly animate page turning in delayed increments
@@ -111,7 +110,7 @@ export const Magazine = ({
     return () => clearTimeout(timeout);
   }, [page]);
 
-  // Store actual initial transforms as quaternions/positions
+  // Store initial transforms
   const initialPositionRef = useRef(null);
   const initialQuaternionRef = useRef(null);
   const initialCameraQuaternionRef = useRef(null);
@@ -125,48 +124,55 @@ export const Magazine = ({
     // Also store camera's quaternion if you want to restore it
     initialCameraQuaternionRef.current = camera.quaternion.clone();
   }, [camera]);
-  
+
 
   useFrame(() => {
     if (!groupRef.current || !initialPositionRef.current) return;
-
+  
     if (focusedMagazine === magazine) {
-      // Place helper in front of the camera
-      helper.position.copy(camera.position);
-      helper.quaternion.copy(camera.quaternion);
-
-      // Move forward so the magazine sits 2 units in front
-      helper.translateZ(-1.5);
-
-      // Slerp magazine toward the helper's rotation
-      groupRef.current.position.lerp(helper.position, 0.1);
-      groupRef.current.quaternion.slerp(helper.quaternion, 0.1);
-
-      // Smoothly rotate the camera to look at the magazine
+      // 1) Compute zDist so box width = viewport width.
+      const geometryWidth = 3.5; // your BoxGeometry is 2 wide
+      const aspect = size.width / size.height;
+      const fovRad = (camera.fov * Math.PI) / 180;
+      const zDist = (geometryWidth / 2) / (aspect * Math.tan(fovRad / 2));
+  
+      // 2) Compute a position directly in front of the camera
+      const newPos = new THREE.Vector3();
+      newPos.copy(camera.position);
+      // Camera looks forward along negative-Z in its local space, so:
+      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).normalize();
+      newPos.addScaledVector(forward, zDist);
+  
+      // 3) Lerp the group to that position
+      groupRef.current.position.lerp(newPos, 0.1);
+  
+      // 4) Slerp the group rotation to match camera orientation
+      groupRef.current.quaternion.slerp(camera.quaternion, 0.1);
+  
+      // 5) Gently rotate camera to look at the group
       const currentCamQuat = camera.quaternion.clone();
       camera.lookAt(groupRef.current.position);
       const targetCamQuat = camera.quaternion.clone();
       camera.quaternion.copy(currentCamQuat);
       camera.quaternion.slerp(targetCamQuat, 0.1);
     } else {
-      // Unfocused → move back to initial
+      // Unfocused => back to initial
       groupRef.current.position.lerp(initialPositionRef.current, 0.1);
       groupRef.current.quaternion.slerp(initialQuaternionRef.current, 0.1);
-
+  
       // Also restore camera orientation
       if (initialCameraQuaternionRef.current) {
         camera.quaternion.slerp(initialCameraQuaternionRef.current, 0.1);
       }
     }
   });
-
-
+  
 
   return (
     <group ref={groupRef} {...props}>
       <mesh
-        geometry={new THREE.BoxGeometry(2, 1, 1)}
-        material={new THREE.MeshBasicMaterial({ transparent: true, opacity: 1 })}
+        geometry={new THREE.BoxGeometry(2.5, 1.5, 1)}
+        material={new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.3 })}
         onPointerEnter={(e) => {
           e.stopPropagation();
           setHighlighted(true);
@@ -180,34 +186,34 @@ export const Magazine = ({
           focusedMagazine && focusedMagazine !== magazine ? "none" : "auto"
         }
       >
-     <group>
-    <Float
-      // rotation={[4 * Math.PI, 1 * Math.PI, 1.8 * Math.PI]}
-      floatIntensity={1}
-      speed={2}
-      rotationIntensity={2}
-      enabled={focusedMagazine !== magazine}
-    >
-    <group rotation={[0, -Math.PI / 2, 0]}>  {/* This rotates all pages 90 degrees around the y-axis */}
-      {pages.map((pageData, idx) => (
-        <Page
-          key={idx}
-          page={delayedPage}
-          number={idx}
-          magazine={magazine}
-          opened={delayedPage > idx}
-          bookClosed={delayedPage === 0 || delayedPage === pages.length}
-          pages={pages}
-          setPage={setPage}
-          highlighted={highlighted}
-          isFocused={focusedMagazine === magazine}
-          {...pageData}
-        />
-      ))}
-    </group>
-    </Float>
-
-</group>
+        <group>
+          <Float
+            floatIntensity={1}
+            speed={2}
+            rotationIntensity={2}
+            enabled={focusedMagazine !== magazine}
+          >
+            <group rotation={[0, -Math.PI / 2, 0]}>
+              {pages.map((pageData, idx) => (
+                <Page
+                  key={idx}
+                  page={delayedPage}
+                  number={idx}
+                  magazine={magazine}
+                  opened={delayedPage > idx}
+                  bookClosed={
+                    delayedPage === 0 || delayedPage === pages.length
+                  }
+                  pages={pages}
+                  setPage={setPage}
+                  highlighted={highlighted}
+                  isFocused={focusedMagazine === magazine}
+                  {...pageData}
+                />
+              ))}
+            </group>
+          </Float>
+        </group>
       </mesh>
     </group>
   );
