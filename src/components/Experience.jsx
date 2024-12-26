@@ -19,7 +19,7 @@ export const Experience = () => {
 		const fov = cameraRef.current.fov * (Math.PI / 180);
 		let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
   
-		cameraZ *= 1.5; // Adjust this value to change the zoom level
+		cameraZ *= 1; // Adjust this value to change the zoom level
   
 		cameraRef.current.position.set(center.x, center.y, center.z + cameraZ);
 		cameraRef.current.updateProjectionMatrix();

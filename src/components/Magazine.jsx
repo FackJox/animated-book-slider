@@ -33,7 +33,6 @@ export const Magazine = ({
   // Build the pages array from pictures
   const pages = [
     { front: "01Front", back: pictures[0] },
-    // Insert pairs ...
   ];
   for (let i = 1; i < pictures.length - 1; i += 2) {
     pages.push({
@@ -74,7 +73,7 @@ export const Magazine = ({
       if (Math.abs(deltaX) > Math.abs(deltaY)) {
         if (deltaX > 50 && page > 0) {
           setPage((p) => p - 1);
-        } else if (deltaX < -50 && page < pages.length - 1) {
+        } else if (deltaX < -50 && page < pages.length ) {
           setPage((p) => p + 1);
         }
       }
