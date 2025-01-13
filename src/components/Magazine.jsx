@@ -11,6 +11,8 @@ export const Magazine = ({
   magazine,
   pageAtom,
   focusedMagazineAtom,
+  isPortrait,
+  layoutPosition,
   ...props
 }) => {
   // ------------------------------
@@ -161,6 +163,17 @@ export const Magazine = ({
         .applyQuaternion(camera.quaternion)
         .normalize();
       newPos.addScaledVector(forward, zDist);
+
+      // Apply layout-specific offset
+      if (layoutPosition) {
+        const [offsetX, offsetY, offsetZ] = layoutPosition;
+        const layoutOffset = new THREE.Vector3(
+          -offsetX,
+          -offsetY,
+          -offsetZ
+        );
+        newPos.add(layoutOffset);
+      }
 
       // Lerp magazine to that position
       groupRef.current.position.lerp(newPos, 0.1);

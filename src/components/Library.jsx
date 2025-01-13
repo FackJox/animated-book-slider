@@ -4,6 +4,7 @@ import { atom, useAtom } from "jotai";
 import { Magazine } from "./Magazine";
 import { useEffect, useRef } from "react";
 import { useThree } from "@react-three/fiber";
+import { useSpring, animated } from "@react-spring/three";
 
 // Atoms for page states
 const smackAtom = atom(0);
@@ -79,34 +80,57 @@ const magazines = {
 };
 
 export const Library = ({ ...props }) => {
+  const { viewport } = useThree();
+  const isPortrait = viewport.width < viewport.height;
+
+  const positions = {
+    [magazines.smack]: isPortrait 
+      ? [0, 2, 0]  // Portrait: top
+      : [-2, 0, 0], // Landscape: left
+    [magazines.vague]: isPortrait
+      ? [0, -2, 0] // Portrait: bottom
+      : [2, 0, 0],  // Landscape: right
+    [magazines.engineer]: isPortrait
+      ? [0, 0, 0]  // Portrait: middle
+      : [0, -2, 0], // Landscape: bottom
+  };
+
+  // Create springs for each magazine
+  const springs = {
+    [magazines.smack]: useSpring({ position: positions[magazines.smack] }),
+    [magazines.vague]: useSpring({ position: positions[magazines.vague] }),
+    [magazines.engineer]: useSpring({ position: positions[magazines.engineer] }),
+  };
+
   return (
     <group {...props}>
       {Object.entries({
         [magazines.smack]: {
-          position: [-2, 0, 0],
+          position: springs[magazines.smack].position,
           pictures: picturesSmack,
           atom: smackAtom,
         },
         [magazines.vague]: {
-          position: [2, 0, 0],
+          position: springs[magazines.vague].position,
           pictures: picturesVague,
           atom: vagueAtom,
         },
         [magazines.engineer]: {
-          position: [0, -2, 0],
+          position: springs[magazines.engineer].position,
           pictures: picturesEngineer,
           atom: engineerAtom,
         },
       }).map(([magazineName, config]) => (
-        <Magazine
-          key={magazineName}
-          position={config.position}
-          pictures={config.pictures}
-          pageAtom={config.atom}
-          magazine={magazineName}
-          // Pass the focusedMagazineAtom to each Magazine
-          focusedMagazineAtom={focusedMagazineAtom}
-        />
+        <animated.group key={magazineName} position={config.position}>
+          <Magazine
+            pictures={config.pictures}
+            pageAtom={config.atom}
+            magazine={magazineName}
+            focusedMagazineAtom={focusedMagazineAtom}
+            isPortrait={isPortrait}
+            layoutPosition={positions[magazineName]}
+          />
+        </animated.group>
       ))}
     </group>
   );
