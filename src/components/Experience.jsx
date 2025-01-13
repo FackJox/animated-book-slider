@@ -22,17 +22,19 @@ export const Experience = () => {
 			</group>
 
 			<Environment
-				preset="studio"
+				preset="warehouse"
 				environmentIntensity={0.5}
+				environmentRotation={[0, Math.PI / 180, 0]}
 			/>
+			 <ambientLight intensity={0.1} />
 			<directionalLight
-				position={[2, 5, 2]}
-				intensity={0.7}
+				position={[2, 3, 5]}
+				intensity={1}
 				castShadow
 				shadow-mapSize-width={2048}
 				shadow-mapSize-height={2048}
 				shadow-bias={-0.0001}
-			/>
+			/> 
 		</>
 	);
 };
