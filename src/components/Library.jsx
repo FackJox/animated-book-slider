@@ -2,7 +2,7 @@
 import { Float, useTexture } from "@react-three/drei";
 import { atom, useAtom } from "jotai";
 import { Magazine } from "./Magazine";
-import { useEffect, useRef } from "react";
+import React, { useEffect, useState, useMemo, useLayoutEffect } from "react";
 import { useThree } from "@react-three/fiber";
 import { useSpring, animated } from "@react-spring/three";
 
@@ -71,52 +71,50 @@ const picturesVague = [
   "11Contributers",
 ];
 
-
-
 const magazines = {
   vague: "vague",
   engineer: "engineer",
   smack: "smack",
 };
 
-export const Library = ({ ...props }) => {
+export const Library = (props) => {
   const { viewport } = useThree();
-  const isPortrait = viewport.width < viewport.height;
+  const [isPortrait, setIsPortrait] = useState(false);
+  
+  useLayoutEffect(() => {
+    setIsPortrait(viewport.width < viewport.height);
+  }, [viewport.width, viewport.height]);
 
-  const positions = {
-    [magazines.smack]: isPortrait 
-      ? [0, 2, 0]  // Portrait: top
-      : [-2, 0, 0], // Landscape: left
-    [magazines.vague]: isPortrait
-      ? [0, -2, 0] // Portrait: bottom
-      : [2, 0, 0],  // Landscape: right
-    [magazines.engineer]: isPortrait
-      ? [0, 0, 0]  // Portrait: middle
-      : [0, -2, 0], // Landscape: bottom
-  };
-
-  // Create springs for each magazine
-  const springs = {
-    [magazines.smack]: useSpring({ position: positions[magazines.smack] }),
-    [magazines.vague]: useSpring({ position: positions[magazines.vague] }),
-    [magazines.engineer]: useSpring({ position: positions[magazines.engineer] }),
-  };
+  const positions = useMemo(
+    () => ({
+      [magazines.smack]: isPortrait 
+        ? [-0.65, 2, 3]   // Portrait: top
+        : [-2, 0, 0], // Landscape: left
+      [magazines.vague]: isPortrait
+        ? [-0.65, 0, 3]  // Portrait: bottom
+        : [2, 0, 0],  // Landscape: right
+      [magazines.engineer]: isPortrait
+        ? [-0.65, -2, 3]  // Portrait: further down
+        : [0, -2, 0], // Landscape: bottom
+    }),
+    [isPortrait]
+  );
 
   return (
     <group {...props}>
       {Object.entries({
         [magazines.smack]: {
-          position: springs[magazines.smack].position,
+          position: positions[magazines.smack],
           pictures: picturesSmack,
           atom: smackAtom,
         },
         [magazines.vague]: {
-          position: springs[magazines.vague].position,
+          position: positions[magazines.vague],
           pictures: picturesVague,
           atom: vagueAtom,
         },
         [magazines.engineer]: {
-          position: springs[magazines.engineer].position,
+          position: positions[magazines.engineer],
           pictures: picturesEngineer,
           atom: engineerAtom,
         },

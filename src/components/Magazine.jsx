@@ -15,6 +15,8 @@ export const Magazine = ({
   layoutPosition,
   ...props
 }) => {
+  
+
   // ------------------------------
   // Atoms & State
   // ------------------------------
@@ -40,6 +42,12 @@ export const Magazine = ({
   // R3F Hooks
   // ------------------------------
   const { camera, size } = useThree();
+
+  useEffect(() => {
+    console.log(`Magazine ${magazine} position:`, layoutPosition);
+    console.log("🚀 ~ camera.position:", camera.position )
+  }, [layoutPosition, magazine, camera.position]);
+
 
   // Change pointer if hovered & not focused
   useCursor(highlighted && focusedMagazine !== magazine);
@@ -229,7 +237,7 @@ export const Magazine = ({
         geometry={new THREE.BoxGeometry(2.5, 1.5, 1)}
         material={new THREE.MeshBasicMaterial({
           transparent: true,
-          opacity: 0.3,
+          opacity: 0,
         })}
         onPointerEnter={(e) => {
           e.stopPropagation();
