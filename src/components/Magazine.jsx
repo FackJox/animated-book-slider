@@ -24,6 +24,7 @@ export const Magazine = ({
   const [delayedPage, setDelayedPage] = useState(page);
   const [focusedMagazine, setFocusedMagazine] = useAtom(focusedMagazineAtom);
   const [highlighted, setHighlighted] = useState(false);
+  const [viewingRightPage, setViewingRightPage] = useState(false);
 
   // ------------------------------
   // Refs
@@ -51,6 +52,13 @@ export const Magazine = ({
 
   // Change pointer if hovered & not focused
   useCursor(highlighted && focusedMagazine !== magazine);
+
+  // Set initial right page view when focusing
+  useEffect(() => {
+    if (focusedMagazine === magazine) {
+      setViewingRightPage(true);
+    }
+  }, [focusedMagazine, magazine]);
 
   // ------------------------------
   // Pages setup
@@ -100,16 +108,41 @@ export const Magazine = ({
       e.stopPropagation();
       setFocusedMagazine((prev) => (prev === magazine ? null : magazine));
     } else {
-      // Horizontal swipe => page turn
+      // Horizontal swipe => page turn or view shift
       if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        if (deltaX > 50) {
-          // Turn backward by 1 page (clamp to >= 0)
-          setPage((p) => Math.max(p - 1, 0));
-        } else if (deltaX < -50) {
-          // Turn forward by 1 page (clamp to <= pages.length)
-          // If you want the final “fully open back cover” at `page === pages.length`,
-          // then clamp to `pages.length`. Otherwise, use `pages.length - 1`.
-          setPage((p) => Math.min(p + 1, pages.length));
+        if (isPortrait) {
+          if (deltaX > 50) {
+            // Swipe right (going backward)
+            if (viewingRightPage) {
+              // If on right page, shift focus to left page
+              setViewingRightPage(false);
+            } else {
+              // If on left page and not at the start, turn page backward
+              if (page > 0) {
+                setPage(page - 1);
+                setViewingRightPage(true); // Focus on right page after turning back
+              }
+            }
+          } else if (deltaX < -50) {
+            // Swipe left (going forward)
+            if (!viewingRightPage) {
+              // If on left page, shift focus to right page
+              setViewingRightPage(true);
+            } else {
+              // If on right page and not at the end, turn page forward
+              if (page < pages.length) {
+                setPage(page + 1);
+                setViewingRightPage(false); // Focus on left page after turning
+              }
+            }
+          }
+        } else {
+          // Regular landscape mode behavior
+          if (deltaX > 50) {
+            setPage((p) => Math.max(p - 1, 0));
+          } else if (deltaX < -50) {
+            setPage((p) => Math.min(p + 1, pages.length));
+          }
         }
       }
       // vertical swipes ignored
@@ -174,12 +207,16 @@ export const Magazine = ({
       const portraitZoomFactor = isPortrait ? 0.45 : 1;
       newPos.addScaledVector(forward, zDist * portraitZoomFactor);
 
-      // Add left offset in portrait mode
+      // Calculate base position before horizontal offset
+      const basePos = newPos.clone();
+
+      // Add horizontal offset in portrait mode based on which page we're viewing
       if (isPortrait) {
         const right = new THREE.Vector3(1, 0, 0)
           .applyQuaternion(camera.quaternion)
           .normalize();
-        newPos.addScaledVector(right, -geometryWidth / 4.75);
+        const horizontalOffset = viewingRightPage ? -geometryWidth / 4.75 : geometryWidth / 4.75;
+        newPos.addScaledVector(right, horizontalOffset);
       }
 
       // Apply layout-specific offset
@@ -193,8 +230,34 @@ export const Magazine = ({
         newPos.add(layoutOffset);
       }
 
-      // Lerp magazine to that position
-      groupRef.current.position.lerp(newPos, 0.1);
+      // Use different lerp speeds for horizontal and other movements
+      const currentPos = groupRef.current.position.clone();
+      const horizontalLerpFactor = 0.03; // Slower horizontal movement
+      const normalLerpFactor = 0.1; // Original speed for other movements
+
+      if (isPortrait) {
+        // Separate horizontal and vertical movements
+        const horizontalDelta = new THREE.Vector3(
+          newPos.x - currentPos.x,
+          0,
+          0
+        );
+        const otherDelta = new THREE.Vector3(
+          0,
+          newPos.y - currentPos.y,
+          newPos.z - currentPos.z
+        );
+
+        // Apply different lerp speeds
+        currentPos.add(horizontalDelta.multiplyScalar(horizontalLerpFactor));
+        currentPos.add(otherDelta.multiplyScalar(normalLerpFactor));
+        groupRef.current.position.copy(currentPos);
+      } else {
+        // Use normal lerp for landscape mode
+        groupRef.current.position.lerp(newPos, normalLerpFactor);
+      }
+
+      // Quaternion lerp remains the same speed
       groupRef.current.quaternion.slerp(camera.quaternion, 0.1);
 
       // Gently rotate camera to look at the group
