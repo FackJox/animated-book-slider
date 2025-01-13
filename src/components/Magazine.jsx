@@ -170,7 +170,17 @@ export const Magazine = ({
       const forward = new THREE.Vector3(0, 0, -1)
         .applyQuaternion(camera.quaternion)
         .normalize();
-      newPos.addScaledVector(forward, zDist);
+      // In portrait mode, move closer to camera
+      const portraitZoomFactor = isPortrait ? 0.45 : 1;
+      newPos.addScaledVector(forward, zDist * portraitZoomFactor);
+
+      // Add left offset in portrait mode
+      if (isPortrait) {
+        const right = new THREE.Vector3(1, 0, 0)
+          .applyQuaternion(camera.quaternion)
+          .normalize();
+        newPos.addScaledVector(right, -geometryWidth / 4.75);
+      }
 
       // Apply layout-specific offset
       if (layoutPosition) {
@@ -255,8 +265,8 @@ export const Magazine = ({
         {/* Use Float; store its ref in floatRef */}
         <Float
           ref={floatRef}
-          floatIntensity={1}
-          speed={2}
+          floatIntensity={0.5}
+          speed={1.5}
           rotationIntensity={2}
           enabled={focusedMagazine !== magazine}
         >
