@@ -5,7 +5,6 @@ import { Magazine } from "./Magazine";
 import React, { useEffect, useState, useMemo, useLayoutEffect } from "react";
 import { useThree } from "@react-three/fiber";
 import { useSpring, animated } from "@react-spring/three";
-import { Flex, Box } from '@react-three/flex'
 
 // Atoms for page states
 const smackAtom = atom(0);
@@ -93,58 +92,48 @@ export const Library = (props) => {
   const positions = useMemo(
     () => ({
       [magazines.smack]: isPortrait 
-        ? [-0.65 + (smackPage > 0 ? 0.65 : 0), 2, 3]   
-        : [-2.5 + (smackPage > 0 ? 0.65 : 0), 0, 6],    // Adjusted for Flex
+        ? [-0.65 + (smackPage > 0 ? 0.65 : 0), 2, 3]   // Portrait: top
+        : [-2.5 + (smackPage > 0 ? 0.65 : 0), 0.5, 4], // Landscape: left
       [magazines.vague]: isPortrait
-        ? [-0.65 + (vaguePage > 0 ? 0.65 : 0), 0, 3]  
-        : [-0.5 + (vaguePage > 0 ? 0.65 : 0), 0, 6],     // Adjusted for Flex
+        ? [-0.65 + (vaguePage > 0 ? 0.65 : 0), 0, 3]  // Portrait: bottom
+        : [1.5 + (vaguePage > 0 ? 0.65 : 0), 0.5, 4],  // Landscape: right
       [magazines.engineer]: isPortrait
-        ? [-0.65 + (engineerPage > 0 ? 0.65 : 0), -2, 3]  
-        : [1.5 + (engineerPage > 0 ? 0.65 : 0), 0, 6],  // Adjusted for Flex
+        ? [-0.65 + (engineerPage > 0 ? 0.65 : 0), -2, 3]  // Portrait: further down
+        : [-0.5 + (engineerPage > 0 ? 0.65 : 0), -1.5, 4], // Landscape: bottom
     }),
     [isPortrait, smackPage, vaguePage, engineerPage]
   );
 
   return (
-    <Flex
-      size={[viewport.width, viewport.height, 0]}
-      position={[0, 0, 0]} // Changed to center
-      justify="center"
-      align="center"
-      centerAnchor
-    >
-      <Box centerAnchor>
-        <group {...props}>
-          {Object.entries({
-            [magazines.smack]: {
-              position: positions[magazines.smack],
-              pictures: picturesSmack,
-              atom: smackAtom,
-            },
-            [magazines.vague]: {
-              position: positions[magazines.vague],
-              pictures: picturesVague,
-              atom: vagueAtom,
-            },
-            [magazines.engineer]: {
-              position: positions[magazines.engineer],
-              pictures: picturesEngineer,
-              atom: engineerAtom,
-            },
-          }).map(([magazineName, config]) => (
-            <animated.group key={magazineName} position={config.position}>
-              <Magazine
-                pictures={config.pictures}
-                pageAtom={config.atom}
-                magazine={magazineName}
-                focusedMagazineAtom={focusedMagazineAtom}
-                isPortrait={isPortrait}
-                layoutPosition={positions[magazineName]}
-              />
-            </animated.group>
-          ))}
-        </group>
-      </Box>
-    </Flex>
+    <group {...props}>
+      {Object.entries({
+        [magazines.smack]: {
+          position: positions[magazines.smack],
+          pictures: picturesSmack,
+          atom: smackAtom,
+        },
+        [magazines.vague]: {
+          position: positions[magazines.vague],
+          pictures: picturesVague,
+          atom: vagueAtom,
+        },
+        [magazines.engineer]: {
+          position: positions[magazines.engineer],
+          pictures: picturesEngineer,
+          atom: engineerAtom,
+        },
+      }).map(([magazineName, config]) => (
+        <animated.group key={magazineName} position={config.position}>
+          <Magazine
+            pictures={config.pictures}
+            pageAtom={config.atom}
+            magazine={magazineName}
+            focusedMagazineAtom={focusedMagazineAtom}
+            isPortrait={isPortrait}
+            layoutPosition={positions[magazineName]}
+          />
+        </animated.group>
+      ))}
+    </group>
   );
 };
