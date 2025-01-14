@@ -195,14 +195,17 @@ export const Magazine = ({
     if (focusedMagazine === magazine) {
       // Move + rotate the magazine in front of camera
       const geometryWidth = 3;
-      const geometryHeight = 1.8;
+      // Increase geometry height and add safety margin
+      const geometryHeight = 2.2; // Increased from 1.8
+      const safetyMargin = 1; // 20% extra margin
 
       const aspect = size.width / size.height;
       const fovRad = (camera.fov * Math.PI) / 180;
 
       const zDistH = (geometryWidth / 2) / (aspect * Math.tan(fovRad / 2));
       const zDistV = (geometryHeight / 2) / Math.tan(fovRad / 2);
-      const zDist = Math.max(zDistH, zDistV);
+      // Apply safety margin to ensure visibility
+      const zDist = Math.max(zDistH, zDistV) * safetyMargin;
 
       const newPos = new THREE.Vector3().copy(camera.position);
       const forward = new THREE.Vector3(0, 0, -1)

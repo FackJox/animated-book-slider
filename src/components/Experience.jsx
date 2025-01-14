@@ -7,9 +7,7 @@ import { Library } from "./Library";
 export const Experience = () => {
 	const cameraRef = useRef();
 	const libraryRef = useRef();
-	const initialCameraZRef = useRef(null);
 	const { viewport } = useThree();
-	const isPortrait = viewport.width < viewport.height;
 
 	
 
