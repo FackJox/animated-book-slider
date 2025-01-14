@@ -85,19 +85,23 @@ export const Library = (props) => {
     setIsPortrait(viewport.width < viewport.height);
   }, [viewport.width, viewport.height]);
 
+  const [smackPage] = useAtom(smackAtom);
+  const [vaguePage] = useAtom(vagueAtom);
+  const [engineerPage] = useAtom(engineerAtom);
+
   const positions = useMemo(
     () => ({
       [magazines.smack]: isPortrait 
-        ? [-0.65, 2, 3]   // Portrait: top
-        : [-2.5, 1, 5], // Landscape: left
+        ? [-0.65 + (smackPage > 0 ? 0.65 : 0), 2, 3]   // Portrait: top
+        : [-2.5 + (smackPage > 0 ? 0.65 : 0), 1, 5], // Landscape: left
       [magazines.vague]: isPortrait
-        ? [-0.65, 0, 3]  // Portrait: bottom
-        : [1.5, 1, 5],  // Landscape: right
+        ? [-0.65 + (vaguePage > 0 ? 0.65 : 0), 0, 3]  // Portrait: bottom
+        : [1.5 + (vaguePage > 0 ? 0.65 : 0), 1, 5],  // Landscape: right
       [magazines.engineer]: isPortrait
-        ? [-0.65, -2, 3]  // Portrait: further down
-        : [-0.5, -1, 5], // Landscape: bottom
+        ? [-0.65 + (engineerPage > 0 ? 0.65 : 0), -2, 3]  // Portrait: further down
+        : [-0.5 + (engineerPage > 0 ? 0.65 : 0), -1, 5], // Landscape: bottom
     }),
-    [isPortrait]
+    [isPortrait, smackPage, vaguePage, engineerPage]
   );
 
   return (
